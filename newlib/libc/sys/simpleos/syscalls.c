@@ -11,7 +11,8 @@
 #undef errno
 extern int errno;
 
-#include "syscall.h"
+#include <syscall.h>
+#include <kernel/stat.h>
 
 static inline _syscall1(SYS_SBRK, void*, sys_sbrk, int, size_delta)
 static inline _syscall3(SYS_READ, int, sys_read, int, fd, void*, buf, uint, size)
@@ -20,6 +21,8 @@ static inline _syscall2(SYS_OPEN, int, sys_open, char*, path, int, flags)
 static inline _syscall1(SYS_CLOSE, int, sys_close, int, fd)
 static inline _syscall1(SYS_EXIT, int, sys_exit, int, exit_code)
 static inline _syscall0(SYS_FORK, int, sys_fork)
+static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, char*, path, fs_stat**, st)
+static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat**, st)
 
 // Exit a program without cleaning up files. 
 // If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
@@ -48,11 +51,34 @@ int fork(void) {
   return sys_fork();
 }
 
+void fs_stat2stat(fs_stat* fs_st, struct stat* st)
+{
+  *st = (struct stat) {0};
+  st->st_dev = (dev_t) fs_st->mount_point_id;
+  st->st_ino = (ino_t) fs_st->inum;
+  st->st_nlink = (nlink_t) fs_st->nlink;
+  st->st_mode = (mode_t) fs_st->mode;
+  st->st_size = (off_t) fs_st->size;
+  st->st_blocks = (blkcnt_t) fs_st->blocks;
+  st->st_blksize = 512;
+  st->st_mtim = (struct timespec) { 
+    .tv_sec = mktime((struct tm*) &fs_st->mtime)
+    };
+  st->st_ctim =  (struct timespec) { 
+    .tv_sec = mktime((struct tm*) &fs_st->ctime)
+  };
+}
+
 // Status of an open file
 // For consistency with other minimal implementations in these examples, all files are regarded as character special devices.
 int fstat(int file, struct stat *st) {
-  st->st_mode = S_IFCHR;
-  return 0;
+  fs_stat fs_st = {0};
+  int res = sys_getattr_fd(file, &fs_st);
+  if(res < 0) {
+    return res;
+  }
+  fs_stat2stat(&fs_st, st);
+  return res;
 }
 
 // Process-ID; this is sometimes used to generate strings unlikely to conflict with other processes.
@@ -63,7 +89,13 @@ int getpid(void) {
 // Query whether output stream is a terminal
 // For consistency with the other minimal implementations, which only support output to stdout
 int isatty(int file) {
-  return 1;
+  struct stat st = {0};
+  int res = fstat(file, &st);
+  if(res < 0) {
+    return st.st_mode == S_IFCHR;
+  } else {
+    return 0;
+  }
 }
 
 // Send a signal
@@ -102,7 +134,12 @@ caddr_t sbrk(int incr)
 
 // Status of a file (by name)
 int stat(const char *file, struct stat *st) {
-  st->st_mode = S_IFCHR;
+  fs_stat fs_st = {0};
+  int res = sys_getattr_path(file, &fs_st);
+  if(res < 0) {
+    return res;
+  }
+  fs_stat2stat(&fs_st, st);
   return 0;
 }
 
