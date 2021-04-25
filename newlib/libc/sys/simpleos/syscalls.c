@@ -23,11 +23,12 @@ static inline _syscall1(SYS_EXIT, int, sys_exit, int, exit_code)
 static inline _syscall0(SYS_FORK, int, sys_fork)
 static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, char*, path, fs_stat**, st)
 static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat**, st)
+static inline _syscall2(SYS_EXEC, int, sys_exec, char*, path, char**, argv);
 
 // Exit a program without cleaning up files. 
 // If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
-void _exit() {
-  sys_exit(-1);
+void _exit(int return_code) {
+  sys_exit(return_code);
 }
 
 // Close a file
@@ -42,8 +43,7 @@ char **environ = __env;
 
 // Transfer control to a new process
 int execve(char *name, char **argv, char **env) {
-  errno = ENOMEM;
-  return -1;
+  return sys_exec(name, argv);
 }
 
 // Create a new process
