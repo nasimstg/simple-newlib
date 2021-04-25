@@ -24,6 +24,7 @@ static inline _syscall0(SYS_FORK, int, sys_fork)
 static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, char*, path, fs_stat**, st)
 static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat**, st)
 static inline _syscall2(SYS_EXEC, int, sys_exec, char*, path, char**, argv);
+static inline _syscall0(SYS_GET_PID, int, sys_get_pid);
 
 // Exit a program without cleaning up files. 
 // If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
@@ -83,7 +84,7 @@ int fstat(int file, struct stat *st) {
 
 // Process-ID; this is sometimes used to generate strings unlikely to conflict with other processes.
 int getpid(void) {
-  return 1;
+  return sys_get_pid();
 }
 
 // Query whether output stream is a terminal
@@ -126,8 +127,7 @@ int read(int file, char *ptr, int len) {
 }
 
 // Increase program data space
-caddr_t sbrk(int incr)
-{
+caddr_t sbrk(int incr) {
   return (caddr_t) sys_sbrk(incr);
 }
 
