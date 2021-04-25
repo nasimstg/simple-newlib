@@ -26,6 +26,7 @@ static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat**,
 static inline _syscall2(SYS_EXEC, int, sys_exec, char*, path, char**, argv);
 static inline _syscall0(SYS_GET_PID, int, sys_get_pid);
 static inline _syscall3(SYS_SEEK, int, sys_seek, int, fd, int, offset, int, whence)
+static inline _syscall1(SYS_CURR_DATE_TIME, int, sys_curr_date_time, date_time*, dt)
 
 // Exit a program without cleaning up files. 
 // If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
@@ -166,3 +167,15 @@ int write(int file, char *ptr, int len) {
   return sys_write(file, ptr, (uint) len);
 }
 
+// Get current clock time
+int gettimeofday(struct timeval* tp, void* tz)
+{
+  date_time dt = {0};
+  int res = sys_curr_date_time(&dt);
+  if(res < 0) {
+    return res;
+  }
+  tp->tv_sec = mktime((struct tm*) &dt);
+  tp->tv_usec = 0;
+  return 0;
+}
