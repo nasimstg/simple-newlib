@@ -25,6 +25,7 @@ static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, char*, path, fs
 static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat**, st)
 static inline _syscall2(SYS_EXEC, int, sys_exec, char*, path, char**, argv);
 static inline _syscall0(SYS_GET_PID, int, sys_get_pid);
+static inline _syscall3(SYS_SEEK, int, sys_seek, int, fd, int, offset, int, whence)
 
 // Exit a program without cleaning up files. 
 // If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
@@ -112,8 +113,8 @@ int link(char *old, char *new) {
 }
 
 // Set position in a file
-int lseek(int file, int ptr, int dir) {
-  return 0;
+int lseek(int file, int offset, int whence) {
+  return sys_seek(file, offset, whence);
 }
 
 // Open a file
