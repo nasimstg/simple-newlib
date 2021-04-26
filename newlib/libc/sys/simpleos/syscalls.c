@@ -27,6 +27,7 @@ static inline _syscall2(SYS_EXEC, int, sys_exec, char*, path, char**, argv);
 static inline _syscall0(SYS_GET_PID, int, sys_get_pid);
 static inline _syscall3(SYS_SEEK, int, sys_seek, int, fd, int, offset, int, whence)
 static inline _syscall1(SYS_CURR_DATE_TIME, int, sys_curr_date_time, date_time*, dt)
+static inline _syscall1(SYS_WAIT, int, sys_wait, int*, wait_status)
 
 // Exit a program without cleaning up files. 
 // If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
@@ -158,8 +159,7 @@ int unlink(char *name) {
 
 // Wait for a child process
 int wait(int *status) {
-  errno = ECHILD;
-  return -1;
+  return sys_wait(status);
 }
 
 // Write to a file. libc subroutines will use this system routine for output to all files, including stdout
