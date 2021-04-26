@@ -437,7 +437,8 @@ esac
 
 case "${host}" in
   i[3-7]86-*-simpleos*)
-    sys_dir=simpleos
+    newlib_cflags="${newlib_cflags} -DHAVE_RENAME"
+	sys_dir=simpleos
     ;;
   *-*-cygwin*)
 	posix_dir=posix

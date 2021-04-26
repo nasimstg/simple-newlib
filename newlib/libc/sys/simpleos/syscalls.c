@@ -17,46 +17,22 @@ extern int errno;
 static inline _syscall1(SYS_SBRK, void*, sys_sbrk, int, size_delta)
 static inline _syscall3(SYS_READ, int, sys_read, int, fd, void*, buf, uint, size)
 static inline _syscall3(SYS_WRITE, int, sys_write, int, fd, const void*, buf, uint, size)
-static inline _syscall2(SYS_OPEN, int, sys_open, char*, path, int, flags)
+static inline _syscall2(SYS_OPEN, int, sys_open, const char*, path, int, flags)
 static inline _syscall1(SYS_CLOSE, int, sys_close, int, fd)
 static inline _syscall1(SYS_EXIT, int, sys_exit, int, exit_code)
 static inline _syscall0(SYS_FORK, int, sys_fork)
-static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, char*, path, fs_stat**, st)
-static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat**, st)
-static inline _syscall2(SYS_EXEC, int, sys_exec, char*, path, char**, argv);
+static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, const char*, path, fs_stat*, st)
+static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat*, st)
+static inline _syscall2(SYS_EXEC, int, sys_exec, const char*, path, char* const *, argv);
 static inline _syscall0(SYS_GET_PID, int, sys_get_pid);
 static inline _syscall3(SYS_SEEK, int, sys_seek, int, fd, int, offset, int, whence)
 static inline _syscall1(SYS_CURR_DATE_TIME, int, sys_curr_date_time, date_time*, dt)
 static inline _syscall1(SYS_WAIT, int, sys_wait, int*, wait_status)
-static inline _syscall1(SYS_UNLINK, int, sys_unlink, char*, path)
+static inline _syscall1(SYS_UNLINK, int, sys_unlink, const char*, path)
+static inline _syscall2(SYS_LINK, int, sys_link, const char*, old_path, const char*, new_path)
+static inline _syscall3(SYS_RENAME, int, sys_rename, const char*, old_path, const char*, new_path, uint, flag)
 
-// Exit a program without cleaning up files. 
-// If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
-void _exit(int return_code) {
-  sys_exit(return_code);
-}
-
-// Close a file
-int close(int file) {
-  return sys_close(file);
-}
-
-// A pointer to a list of environment variables and their values. 
-// For a minimal environment, this empty list is adequate:
-char *__env[1] = { 0 };
-char **environ = __env;
-
-// Transfer control to a new process
-int execve(char *name, char **argv, char **env) {
-  return sys_exec(name, argv);
-}
-
-// Create a new process
-int fork(void) {
-  return sys_fork();
-}
-
-void fs_stat2stat(fs_stat* fs_st, struct stat* st)
+static void fs_stat2stat(fs_stat* fs_st, struct stat* st)
 {
   *st = (struct stat) {0};
   st->st_dev = (dev_t) fs_st->mount_point_id;
@@ -72,6 +48,34 @@ void fs_stat2stat(fs_stat* fs_st, struct stat* st)
   st->st_ctim =  (struct timespec) { 
     .tv_sec = mktime((struct tm*) &fs_st->ctime)
   };
+}
+
+
+// Exit a program without cleaning up files. 
+// If your system doesn’t provide this, it is best to avoid linking with subroutines that require it (exit, system).
+void _exit(int return_code) {
+  sys_exit(return_code);
+  __builtin_unreachable(); // shall not return to here
+}
+
+// Close a file
+int close(int file) {
+  return sys_close(file);
+}
+
+// A pointer to a list of environment variables and their values. 
+// For a minimal environment, this empty list is adequate:
+char *__env[1] = { 0 };
+char **environ = __env;
+
+// Transfer control to a new process
+int execve (const char *path, char * const argv[], char * const envp[]) {
+  return sys_exec(path, argv);
+}
+
+// Create a new process
+int fork(void) {
+  return sys_fork();
 }
 
 // Status of an open file
@@ -110,14 +114,18 @@ int kill(int pid, int sig) {
 }
 
 // Establish a new name for an existing file
-int link(char *old, char *new) {
-  errno = EMLINK;
-  return -1;
+int link(const char *old, const char *new) {
+  return sys_link(old, new);
+}
+
+int _rename(const char* old, const char* new)
+{
+  return sys_rename(old, new, 0);
 }
 
 // Set position in a file
-int lseek(int file, int offset, int whence) {
-  return sys_seek(file, offset, whence);
+off_t lseek(int file, off_t offset, int whence) {
+  return (off_t) sys_seek(file, (int) offset, whence);
 }
 
 // Open a file
@@ -126,13 +134,13 @@ int open(const char *name, int flags, ...) {
 }
 
 // Read from a file
-int read(int file, char *ptr, int len) {
+int read(int file, void *ptr, size_t len) {
   return sys_read(file, ptr, (uint) len);
 }
 
 // Increase program data space
-caddr_t sbrk(int incr) {
-  return (caddr_t) sys_sbrk(incr);
+void* sbrk(ptrdiff_t incr) {
+  return sys_sbrk((int) incr);
 }
 
 
@@ -153,7 +161,7 @@ clock_t times(struct tms *buf) {
 }
 
 // Remove a file’s directory entry
-int unlink(char *name) {
+int unlink(const char *name) {
   return sys_unlink(name);
 }
 
@@ -163,7 +171,7 @@ int wait(int *status) {
 }
 
 // Write to a file. libc subroutines will use this system routine for output to all files, including stdout
-int write(int file, char *ptr, int len) {
+int write(int file, const void *ptr, size_t len) {
   return sys_write(file, ptr, (uint) len);
 }
 
