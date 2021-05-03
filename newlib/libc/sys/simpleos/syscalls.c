@@ -1,4 +1,5 @@
 /* note these headers are all provided by newlib - you don't need to provide them */
+#include <string.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/times.h>
@@ -31,10 +32,12 @@ static inline _syscall1(SYS_WAIT, int, sys_wait, int*, wait_status)
 static inline _syscall1(SYS_UNLINK, int, sys_unlink, const char*, path)
 static inline _syscall2(SYS_LINK, int, sys_link, const char*, old_path, const char*, new_path)
 static inline _syscall3(SYS_RENAME, int, sys_rename, const char*, old_path, const char*, new_path, uint, flag)
+static inline _syscall1(SYS_CHDIR, int, sys_chdir, const char *, path)
+static inline _syscall2(SYS_GETCWD, int, sys_getcwd, char *, buf, size_t, buf_size)
 
 static void fs_stat2stat(fs_stat* fs_st, struct stat* st)
 {
-  *st = (struct stat) {0};
+  memset(st, 0, sizeof(*st));
   st->st_dev = (dev_t) fs_st->mount_point_id;
   st->st_ino = (ino_t) fs_st->inum;
   st->st_nlink = (nlink_t) fs_st->nlink;
@@ -186,4 +189,19 @@ int gettimeofday(struct timeval* tp, void* tz)
   tp->tv_sec = mktime((struct tm*) &dt);
   tp->tv_usec = 0;
   return 0;
+}
+
+int chdir(const char* path)
+{
+  return sys_chdir(path);
+}
+
+char* getcwd(char* buf, size_t size)
+{
+  int r = sys_getcwd(buf, size);
+  if(r < 0) {
+    return NULL;
+  } else {
+    return buf;
+  }
 }
