@@ -34,6 +34,8 @@ static inline _syscall2(SYS_LINK, int, sys_link, const char*, old_path, const ch
 static inline _syscall3(SYS_RENAME, int, sys_rename, const char*, old_path, const char*, new_path, uint, flag)
 static inline _syscall1(SYS_CHDIR, int, sys_chdir, const char *, path)
 static inline _syscall2(SYS_GETCWD, int, sys_getcwd, char *, buf, size_t, buf_size)
+static inline _syscall2(SYS_TRUNCATE_FD, int, sys_truncate_fd, int, fd, uint, size)
+static inline _syscall2(SYS_TRUNCATE_PATH, int, sys_truncate_path, const char*, path, uint, size)
 
 static void fs_stat2stat(fs_stat* fs_st, struct stat* st)
 {
@@ -204,4 +206,14 @@ char* getcwd(char* buf, size_t size)
   } else {
     return buf;
   }
+}
+
+int ftruncate (int fd, off_t length)
+{
+  return sys_truncate_fd(fd, (uint) length);
+}
+
+int truncate (const char * path, off_t length)
+{
+  return sys_truncate_path(path, (uint) length);
 }
