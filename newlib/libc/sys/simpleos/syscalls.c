@@ -8,9 +8,8 @@
 
 #include <sys/stat.h>
 
+#include <reent.h>
 #include <errno.h>
-#undef errno
-extern int errno;
 
 #include <syscall.h>
 #include <kernel/stat.h>
@@ -40,7 +39,7 @@ static inline _syscall2(SYS_TRUNCATE_PATH, int, sys_truncate_path, const char*, 
 static int set_errno(int res)
 {
   if(res < 0) {
-    errno = -res;
+    _impure_ptr->_errno = -res;
     return -1;
   } else {
     return res;
