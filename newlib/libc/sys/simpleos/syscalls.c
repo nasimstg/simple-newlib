@@ -35,6 +35,8 @@ static inline _syscall1(SYS_CHDIR, int, sys_chdir, const char *, path)
 static inline _syscall2(SYS_GETCWD, int, sys_getcwd, char *, buf, size_t, buf_size)
 static inline _syscall2(SYS_TRUNCATE_FD, int, sys_truncate_fd, int, fd, uint, size)
 static inline _syscall2(SYS_TRUNCATE_PATH, int, sys_truncate_path, const char*, path, uint, size)
+static inline _syscall2(SYS_MKDIR, int, sys_mkdir, const char*, path, uint, mode)
+static inline _syscall1(SYS_RMDIR, int, sys_rmdir, const char*, path)
 
 static int set_errno(int res)
 {
@@ -232,4 +234,14 @@ int ftruncate (int fd, off_t length)
 int truncate (const char * path, off_t length)
 {
   return set_errno(sys_truncate_path(path, (uint) length));
+}
+
+int	mkdir (const char *path, mode_t mode )
+{
+  return set_errno(sys_mkdir(path, mode));
+}
+
+int rmdir (const char *path)
+{
+  return set_errno(sys_rmdir(path));
 }
