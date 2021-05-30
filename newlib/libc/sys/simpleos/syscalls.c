@@ -5,6 +5,7 @@
 #include <sys/times.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <sys/stat.h>
 
@@ -13,6 +14,9 @@
 
 #include <syscall.h>
 #include <kernel/stat.h>
+#include <fs.h>
+
+#include "sys/dirent.h"
 
 static inline _syscall1(SYS_SBRK, int, sys_sbrk, int, size_delta)
 static inline _syscall3(SYS_READ, int, sys_read, int, fd, void*, buf, uint, size)
@@ -37,6 +41,7 @@ static inline _syscall2(SYS_TRUNCATE_FD, int, sys_truncate_fd, int, fd, uint, si
 static inline _syscall2(SYS_TRUNCATE_PATH, int, sys_truncate_path, const char*, path, uint, size)
 static inline _syscall2(SYS_MKDIR, int, sys_mkdir, const char*, path, uint, mode)
 static inline _syscall1(SYS_RMDIR, int, sys_rmdir, const char*, path)
+static inline _syscall4(SYS_READDIR, int, sys_readdir, const char *, path, uint, entry_offset, fs_dirent*, buf, uint, buf_size)
 
 static int set_errno(int res)
 {
@@ -244,4 +249,39 @@ int	mkdir (const char *path, mode_t mode )
 int rmdir (const char *path)
 {
   return set_errno(sys_rmdir(path));
+}
+
+typedef struct DIR {
+    uint32_t entry_offset;
+    char* path;
+    struct dirent* entry;
+} DIR;
+
+DIR* opendir(const char * path) {
+  DIR* dir = malloc(sizeof(DIR));
+  dir->entry_offset = 0;
+  dir->path = strdup(path);
+  dir->entry = malloc(sizeof(*dir->entry));
+  memset(dir->entry, 0, sizeof(*dir->entry));
+  return dir;
+}
+
+struct dirent* readdir(DIR* dir)
+{
+  fs_dirent entry = {0};
+  int r = sys_readdir(dir->path, dir->entry_offset++, &entry, sizeof(fs_dirent));
+  if(r <= 0) {
+    set_errno(r);
+    return NULL;
+  }
+  dir->entry->d_ino = entry.inum;
+  strncpy(dir->entry->d_name, entry.name, MAXNAMLEN);
+  return dir->entry;
+}
+
+int	closedir(DIR *dir)
+{
+  free(dir->entry);
+  free(dir->path);
+  return 0;
 }
