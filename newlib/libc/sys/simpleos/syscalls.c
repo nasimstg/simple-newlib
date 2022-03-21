@@ -93,6 +93,10 @@ int execve (const char *path, char * const argv[], char * const envp[]) {
   return set_errno(sys_exec(path, argv));
 }
 
+int execvp(const char *path, char *const argv[]) {
+  return set_errno(sys_exec(path, argv));
+}
+
 // Create a new process
 int fork(void) {
   return set_errno(sys_fork());
