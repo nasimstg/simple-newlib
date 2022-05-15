@@ -27,7 +27,7 @@ static inline _syscall1(SYS_EXIT, int, sys_exit, int, exit_code)
 static inline _syscall0(SYS_FORK, int, sys_fork)
 static inline _syscall2(SYS_GETATTR_PATH, int, sys_getattr_path, const char*, path, fs_stat*, st)
 static inline _syscall2(SYS_GETATTR_FD, int, sys_getattr_fd, int, fd, fs_stat*, st)
-static inline _syscall2(SYS_EXEC, int, sys_exec, const char*, path, char* const *, argv);
+static inline _syscall3(SYS_EXEC, int, sys_exec, const char*, path, char* const *, argv, char* const *, envp)
 static inline _syscall0(SYS_GET_PID, int, sys_get_pid);
 static inline _syscall3(SYS_SEEK, int, sys_seek, int, fd, int, offset, int, whence)
 static inline _syscall1(SYS_CURR_DATE_TIME, int, sys_curr_date_time, date_time*, dt)
@@ -85,16 +85,17 @@ int close(int fd) {
 
 // A pointer to a list of environment variables and their values. 
 // For a minimal environment, this empty list is adequate:
-char *__env[1] = { 0 };
-char **environ = __env;
+// char *__env[1] = { 0 };
+// char **environ = __env;
+extern char** environ;
 
 // Transfer control to a new process
 int execve (const char *path, char * const argv[], char * const envp[]) {
-  return set_errno(sys_exec(path, argv));
+  return set_errno(sys_exec(path, argv, envp));
 }
 
 int execvp(const char *path, char *const argv[]) {
-  return set_errno(sys_exec(path, argv));
+  return set_errno(sys_exec(path, argv, environ));
 }
 
 // Create a new process
