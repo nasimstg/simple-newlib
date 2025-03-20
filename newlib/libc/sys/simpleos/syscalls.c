@@ -13,7 +13,7 @@
 #include <errno.h>
 
 #include <syscall.h>
-#include <fsstat.h>
+#include <kernel/stat.h>
 #include <fs.h>
 
 #include "sys/dirent.h"
